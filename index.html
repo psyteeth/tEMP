@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ТАКТИК — забрало Игоря</title>
+<style>
+  :root{
+    --bg: #1c1b19;
+    --bg-raised: #242220;
+    --ink: #e8e2d4;
+    --ink-dim: #9a9388;
+    --brass: #c9974f;
+    --brass-dim: #6b5430;
+    --bad: #a8453a;
+    --good: #5d8a6b;
+    --line: #3a362f;
+    --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:
+      radial-gradient(ellipse 800px 500px at 50% -10%, #2a2722 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--serif);
+    display:flex; justify-content:center;
+    padding:28px 16px 60px;
+  }
+  .wrap{ width:100%; max-width:640px; }
+
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--brass); margin-bottom:6px;
+  }
+  h1{
+    font-size:28px; margin:0 0 4px; font-weight:600; letter-spacing:.01em;
+  }
+  .sub{ color:var(--ink-dim); font-size:14px; margin:0 0 22px; line-height:1.5; }
+
+  /* ВИЗОР: дуга, которая раскрывается по мере доверия */
+  .visor-zone{
+    display:flex; align-items:center; gap:18px;
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:14px; padding:16px 18px; margin-bottom:22px;
+  }
+  .visor-svg{ width:74px; height:74px; flex:none; }
+  .visor-meta{ flex:1; }
+  .visor-label{ font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim); text-transform:uppercase;}
+  .visor-state{ font-size:17px; margin-top:2px; }
+  .visor-state b{ color:var(--brass); }
+  .turns{ font-family:var(--mono); font-size:12px; color:var(--ink-dim); white-space:nowrap;}
+
+  .log{
+    background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:14px; padding:6px 18px; margin-bottom:16px;
+    max-height:52vh; overflow-y:auto;
+  }
+  .turn{ padding:14px 0; border-bottom:1px solid var(--line); }
+  .turn:last-child{ border-bottom:none; }
+  .who{ font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:5px;}
+  .who.you{ color:var(--brass); }
+  .line{ font-size:16px; line-height:1.5; }
+  .npc .line{ font-style:italic; color:#d8d2c4; }
+  .tag{
+    display:inline-block; margin-top:7px; font-family:var(--mono);
+    font-size:10.5px; letter-spacing:.06em; padding:3px 8px;
+    border-radius:5px; border:1px solid var(--line); color:var(--ink-dim);
+  }
+  .tag.plus{ color:var(--good); border-color:#3c5446;}
+  .tag.minus{ color:var(--bad); border-color:#5e3530;}
+
+  .inputzone{ display:flex; gap:8px; }
+  textarea{
+    flex:1; resize:none; min-height:64px;
+    background:var(--bg-raised); border:1px solid var(--line); border-radius:10px;
+    color:var(--ink); font-family:var(--serif); font-size:15px; padding:12px 14px;
+  }
+  textarea:focus{ outline:none; border-color:var(--brass-dim); }
+  button{
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    background:var(--brass); color:#241f14; border:none; border-radius:10px;
+    padding:0 18px; cursor:pointer; font-weight:600;
+  }
+  button:disabled{ opacity:.4; cursor:default; }
+  button:hover:not(:disabled){ filter:brightness(1.08); }
+
+  .hint{ font-family:var(--mono); font-size:11px; color:var(--ink-dim); margin-top:10px; line-height:1.6;}
+
+  .cheatsheet{
+    margin-top:18px; background:var(--bg-raised); border:1px solid var(--line);
+    border-radius:14px; padding:14px 16px;
+  }
+  .cheat-toggle{
+    display:flex; justify-content:space-between; align-items:center;
+    cursor:pointer; user-select:none;
+  }
+  .cheat-toggle .eyebrow{ margin:0; }
+  .cheat-arrow{ color:var(--ink-dim); font-family:var(--mono); font-size:12px; transition:transform .2s; }
+  .cheatsheet.open .cheat-arrow{ transform:rotate(180deg); }
+  .cheat-body{ display:none; margin-top:12px; }
+  .cheatsheet.open .cheat-body{ display:block; }
+  .cheat-group{ margin-bottom:12px; }
+  .cheat-group:last-child{ margin-bottom:0; }
+  .cheat-group-label{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--brass); margin-bottom:6px;
+  }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip{
+    font-family:var(--serif); font-size:13px; color:var(--ink);
+    background:#2c2924; border:1px solid var(--line); border-radius:8px;
+    padding:6px 10px; cursor:pointer; text-align:left; line-height:1.3;
+  }
+  .chip:hover{ border-color:var(--brass-dim); background:#332e26; }
+  .chip .blank{ color:var(--ink-dim); }
+
+  .outcome{
+    margin-top:18px; padding:18px; border-radius:14px; text-align:center;
+    border:1px solid var(--line); display:none;
+  }
+  .outcome.show{ display:block; }
+  .outcome.win{ border-color:#3c5446; background:#1d2620; }
+  .outcome.lose{ border-color:#5e3530; background:#241c1a; }
+  .outcome h2{ margin:0 0 8px; font-size:22px; }
+  .outcome p{ color:var(--ink-dim); font-size:14px; margin:0 0 14px; }
+  .coachnote{
+    text-align:left; font-size:14px; line-height:1.55; color:var(--ink);
+    background:rgba(0,0,0,.18); border-left:3px solid var(--brass);
+    padding:10px 14px; border-radius:6px; margin-bottom:16px;
+  }
+  .turntable{ width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12px; margin-bottom:16px; }
+  .turntable th{ text-align:left; color:var(--ink-dim); font-weight:400; padding:4px 8px; border-bottom:1px solid var(--line); }
+  .turntable td{ text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); }
+  .turntable td.plus{ color:var(--good); }
+  .turntable td.minus{ color:var(--bad); }
+  .restart{ background:transparent; border:1px solid var(--brass-dim); color:var(--brass); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Тактик · сценарий 01</div>
+  <h1>Забрало Игоря</h1>
+  <p class="sub">Игорь два месяца в «Исцелении отношений». Вчера написал в чат, что выходит из программы — «жена против». Через минуту он позвонит. Твоя задача — не убедить его остаться. Твоя задача — услышать, что он на самом деле боится, и дойти до его «Точняк». Если услышишь в ответ «Ты прав» — ты не туда свернул.</p>
+
+  <div class="visor-zone">
+    <svg class="visor-svg" viewBox="0 0 100 100" id="visorSvg">
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#3a362f" stroke-width="3"/>
+      <path id="visorArc" fill="none" stroke="#c9974f" stroke-width="6" stroke-linecap="round"
+            d="" />
+      <circle cx="50" cy="50" r="4" fill="#c9974f"/>
+    </svg>
+    <div class="visor-meta">
+      <div class="visor-label">Забрало Игоря</div>
+      <div class="visor-state" id="visorState">закрыто — он защищается</div>
+    </div>
+    <div class="turns" id="turnCounter">ход 0 / 9</div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <div class="inputzone">
+    <textarea id="playerInput" placeholder="Что ты скажешь Игорю?" maxlength="400"></textarea>
+    <button id="sendBtn">ОТВЕТИТЬ</button>
+  </div>
+  <div class="hint">Зеркало, лейбл, калибровочный вопрос, accusation audit, нет-вопрос — работают. «Я понимаю», готовое решение, да-вопрос, перебивание — роняют доверие.</div>
+
+  <div class="cheatsheet" id="cheatsheet">
+    <div class="cheat-toggle" id="cheatToggle">
+      <div class="eyebrow" style="margin:0;">Шпаргалка · кликни — вставится в поле, дописываешь сам</div>
+      <span class="cheat-arrow">▾</span>
+    </div>
+    <div class="cheat-body">
+      <div class="cheat-group">
+        <div class="cheat-group-label">Зеркало</div>
+        <div class="chips">
+          <div class="chip" data-tpl="[повтори последние 1-3 слова Игоря]?">[повтори последние слова]?</div>
+        </div>
+      </div>
+      <div class="cheat-group">
+        <div class="cheat-group-label">Лейбл (go-to)</div>
+        <div class="chips">
+          <div class="chip" data-tpl="Звучит так, как будто ">Звучит так, как будто...</div>
+          <div class="chip" data-tpl="Кажется, тебе ">Кажется, тебе...</div>
+          <div class="chip" data-tpl="Выглядит так, что ">Выглядит так, что...</div>
+          <div class="chip" data-tpl="Я знаю, что этот разговор ">Я знаю, что этот разговор...</div>
+        </div>
+      </div>
+      <div class="cheat-group">
+        <div class="cheat-group-label">Калибровочные вопросы</div>
+        <div class="chips">
+          <div class="chip" data-tpl="Что тебя больше всего беспокоит в ">Что тебя больше всего беспокоит в...</div>
+          <div class="chip" data-tpl="Как ты видишь, что будет, если ">Как ты видишь, что будет, если...</div>
+        </div>
+      </div>
+      <div class="cheat-group">
+        <div class="cheat-group-label">Нет-ориентированный вопрос</div>
+        <div class="chips">
+          <div class="chip" data-tpl="Было бы нелепо, если ">Было бы нелепо, если...</div>
+          <div class="chip" data-tpl="Ты против того, чтобы ">Ты против того, чтобы...</div>
+        </div>
+      </div>
+      <div class="cheat-group">
+        <div class="cheat-group-label">Accusation audit (только в начале)</div>
+        <div class="chips">
+          <div class="chip" data-tpl="Тебе, наверное, кажется, что я сейчас ">Тебе, наверное, кажется, что я сейчас...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="outcome" id="outcome"></div>
+</div>
+
+<script>
+const MAX_TURNS = 9;
+let trust = 0; // -10..10
+let turn = 0;
+let ended = false;
+let history = []; // {role:'player'|'npc', text}
+let turnsLog = []; // {n, technique, delta}
+
+const SYSTEM_PROMPT = `Ты — судья и движок диалога в обучающей игре по тактической эмпатии (методика Криса Восса, адаптация для русскоязычной школы коммуникации).
+
+КОНТЕКСТ СЦЕНАРИЯ:
+Игорь, 34 года, участник школы коммуникации "Исцеление отношений" два месяца. Вчера написал в общий чат, что выходит из программы, мотивация — "жена против, постоянно ругаемся из-за этого". Реальный страх Игоря (скрытый, не озвучивает прямо): он сам боится, что регулярные "стычки" (тренировочные конфронтации) показывают ему, что он избегает конфликтов всю жизнь, и жена тут — удобное прикрытие, чтобы не встречаться с этим стыдом. Игорь — тип "Accommodator" (по классификации из методики): ему важно одобрение, легко соглашается лишь бы не спорить, оправдывается, уходит от прямых вопросов в общие фразы, может сказать неискреннее "ты прав" просто чтобы закрыть тему.
+
+ТВОЯ ЗАДАЧА на каждый ход:
+1. Прочитать реплику игрока (живого человека, тренирующегося).
+2. Определить, какую технику он применил, по списку:
+   - zerkalo (зеркалирование — повтор последних 1-3 слов оппонента с вопросительной интонацией)
+   - leibl (безоценочный лейблинг — "звучит так, как будто...", "кажется тебе...", признание эмоции без оценки)
+   - kalibr_chto (калибровочный "что"-вопрос, открывающий)
+   - kalibr_kak (калибровочный "как"-вопрос, про реализацию)
+   - net_vopros (нет-ориентированный вопрос — "было бы нелепо если...", "ты против...")
+   - audit (accusation audit — упреждающее называние вероятных негативных мыслей собеседника о себе)
+   - summary (саммари — пересказ фактов + чувств оппонента его словами, попытка получить финальное согласие)
+   - da_vopros (обычный да-ориентированный закрывающий вопрос — риск получить фальшивое согласие)
+   - ya_ponimayu (фразы "я понимаю", "понимаю тебя", "я тебя слышу" без лейбла)
+   - reshenie_rano (предлагает решение/совет до того, как накоплено доверие)
+   - perebivanie_ili_davlenie (давит, спорит, доказывает свою позицию, игнорирует сказанное Игорем)
+   - drugoe (что-то иное, нейтральное)
+
+3. Вычислить trust_delta по правилам:
+   - audit в первые 1-2 хода: +3
+   - leibl точный (называет реальную эмоцию Игоря, не клише): +2
+   - zerkalo: +1
+   - kalibr_chto, kalibr_kak: +1
+   - net_vopros: +1
+   - summary, если до этого было суммарно ≥3 успешных (leibl/zerkalo/kalibr) ходов: может дать TRUE WIN — outcome="that_right"
+   - summary преждевременный (менее 3 накопленных успешных ходов): outcome="you_right" (Игорь говорит формальное "ты прав, наверное", закрывается), trust_delta: -2
+   - da_vopros: -1
+   - ya_ponimayu: -2
+   - reshenie_rano: -2
+   - perebivanie_ili_davlenie: -3
+   - drugoe: 0
+
+4. Сгенерировать реплику Игоря (npc_reply) — живую, в характере Accommodator: оправдывающуюся, мягкую, уходящую от темы при низком доверии; постепенно более открытую и честную при росте доверия (выше 6 — начинает упоминать настоящий страх про стычки и стыд избегания, но прямо не называет его, пока не получит точный лейбл этого конкретно).
+
+5. ВАЖНО про финал:
+   - Если игрок делает точное summary на накопленном доверии (см. выше) — Игорь должен сказать буквально что-то вроде "...Точняк. Я не из-за жены ухожу" и признать реальный страх. outcome="that_right".
+   - Если summary преждевременный или есть резкая просадка доверия (trust после хода ≤ -6) — Игорь формально соглашается и обрывает разговор. outcome="you_right".
+   - Если это последний ход (turn_number указан в input) и outcome всё ещё continue — outcome="timeout".
+   - Иначе outcome="continue".
+
+6. Поле coach_note: заполняй ТОЛЬКО когда outcome != "continue". Это одна конкретная фраза (не общая, не "тренируйся больше") о том, какой именно ход и почему стал решающим — назови номер хода или процитируй фразу игрока, укажи, какую технику стоило применить вместо использованной. Когда outcome="continue" — оставляй coach_note пустой строкой.
+
+Отвечай СТРОГО в формате JSON, без markdown, без пояснений:
+{"technique":"...", "trust_delta": число, "npc_reply":"...", "outcome":"continue|that_right|you_right|timeout", "coach_note":"..."}`;
+
+function renderVisor(){
+  const pct = Math.max(0, Math.min(1, (trust + 10) / 20));
+  const angle = pct * 300 - 150; // дуга от -150 до +150 градусов
+  const r = 46;
+  const cx = 50, cy = 50;
+  const startAngle = -150 * Math.PI/180;
+  const endAngle = angle * Math.PI/180;
+  const x1 = cx + r*Math.cos(startAngle), y1 = cy + r*Math.sin(startAngle);
+  const x2 = cx + r*Math.cos(endAngle), y2 = cy + r*Math.sin(endAngle);
+  const largeArc = (angle - (-150)) > 180 ? 1 : 0;
+  const d = pct <= 0.02 ? "" : `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+  document.getElementById('visorArc').setAttribute('d', d);
+
+  const stateEl = document.getElementById('visorState');
+  if(trust <= -4) stateEl.innerHTML = "<b>захлопнулось</b> — защищается жёстче, чем в начале";
+  else if(trust < 2) stateEl.innerHTML = "закрыто — он защищается";
+  else if(trust < 5) stateEl.innerHTML = "<b>щель</b> — слушает внимательнее";
+  else if(trust < 8) stateEl.innerHTML = "<b>приоткрыто</b> — готов сказать больше, чем планировал";
+  else stateEl.innerHTML = "<b>почти открыто</b> — на грани честности";
+  document.getElementById('turnCounter').textContent = `ход ${turn} / ${MAX_TURNS}`;
+}
+
+function addTurn(role, text, tag){
+  const log = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'turn' + (role==='npc' ? ' npc' : '');
+  const who = role==='npc' ? 'ИГОРЬ' : 'ТЫ';
+  div.innerHTML = `<div class="who ${role==='player'?'you':''}">${who}</div><div class="line">${text}</div>${tag||''}`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function tagFor(technique, delta){
+  if(delta === 0 && !technique) return '';
+  const cls = delta > 0 ? 'plus' : (delta < 0 ? 'minus' : '');
+  const sign = delta > 0 ? '+' : '';
+  return `<div class="tag ${cls}">${technique} · доверие ${sign}${delta}</div>`;
+}
+
+const WORKER_URL = "https://taktik-proxy.ТВОЙ-АККАУНТ.workers.dev"; // ⚠️ замени после деплоя воркера
+
+async function callJudge(playerText){
+  const msgHistory = history.map(h => ({
+    role: h.role === 'player' ? 'user' : 'assistant',
+    content: h.role === 'player' ? h.text : h.text
+  }));
+
+  const userPayload = `ТЕКУЩЕЕ ДОВЕРИЕ: ${trust}
+НОМЕР ХОДА: ${turn + 1} из ${MAX_TURNS}
+РЕПЛИКА ИГРОКА: "${playerText}"
+ИСТОРИЯ ДИАЛОГА (для контекста, последние реплики):
+${history.slice(-6).map(h => (h.role==='player'?'Игрок: ':'Игорь: ')+h.text).join('\n')}`;
+
+  const response = await fetch(WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 500,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPayload }]
+    })
+  });
+
+  if (response.status === 429) {
+    const errBody = await response.json().catch(()=>({error:'rate_limit'}));
+    const msg = errBody.error === 'rate_limit_daily_exceeded'
+      ? 'Суточный лимит запросов исчерпан — попробуй завтра.'
+      : 'Слишком много запросов с этого устройства за 10 минут — подожди и попробуй снова.';
+    throw new Error(msg);
+  }
+  if (!response.ok) {
+    throw new Error('Сервер прокси ответил с ошибкой ' + response.status);
+  }
+
+  const data = await response.json();
+  const textBlock = data.content.find(c => c.type === 'text');
+  let raw = textBlock ? textBlock.text : '{}';
+  raw = raw.replace(/```json|```/g, '').trim();
+  return JSON.parse(raw);
+}
+
+async function handleSend(){
+  const input = document.getElementById('playerInput');
+  const text = input.value.trim();
+  if(!text || ended) return;
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  input.disabled = true;
+
+  addTurn('player', text);
+  history.push({role:'player', text});
+  turn++;
+
+  try{
+    const result = await callJudge(text);
+    trust += (result.trust_delta || 0);
+    trust = Math.max(-10, Math.min(10, trust));
+    addTurn('npc', result.npc_reply, tagFor(result.technique, result.trust_delta||0));
+    history.push({role:'npc', text: result.npc_reply});
+    turnsLog.push({n: turn, technique: result.technique || 'drugoe', delta: result.trust_delta || 0});
+    renderVisor();
+
+    if(result.outcome === 'that_right'){
+      finish(true, "Точняк.", "Игорь дошёл до настоящей причины — не до той, которую назвал в чате. Это и есть результат тактической эмпатии: не убеждение, а раскрытие.", result.coach_note);
+    } else if(result.outcome === 'you_right'){
+      finish(false, "«Ты прав, наверное...»", "Это не согласие — это способ закрыть тему. Где-то ты поторопился с выводом или надавил раньше, чем заслужил доверие.", result.coach_note);
+    } else if(result.outcome === 'timeout' || turn >= MAX_TURNS){
+      finish(false, "Игорь повесил трубку.", "Девять ходов прошло, забрало не открылось.", result.coach_note);
+    } else {
+      sendBtn.disabled = false;
+      input.disabled = false;
+      input.value = '';
+      input.focus();
+    }
+  } catch(e){
+    console.error(e);
+    addTurn('npc', '[' + (e.message || 'сбой связи — попробуй ещё раз') + ']');
+    turn--; // ошибка/лимит не должны жрать ход игрока
+    history.pop(); // убираем реплику игрока из истории — она не получила ответа
+    sendBtn.disabled = false;
+    input.disabled = false;
+  }
+}
+
+const TECH_NAMES = {
+  zerkalo: 'зеркало', leibl: 'лейбл', kalibr_chto: 'калибр. «что»', kalibr_kak: 'калибр. «как»',
+  net_vopros: 'нет-вопрос', audit: 'audit', summary: 'саммари', da_vopros: 'да-вопрос',
+  ya_ponimayu: '«я понимаю»', reshenie_rano: 'решение рано', perebivanie_ili_davlenie: 'давление',
+  drugoe: 'нейтрально'
+};
+
+function finish(win, title, text, coachNote){
+  ended = true;
+  document.getElementById('playerInput').disabled = true;
+  document.getElementById('sendBtn').disabled = true;
+  const out = document.getElementById('outcome');
+  out.className = 'outcome show ' + (win ? 'win' : 'lose');
+
+  const rows = turnsLog.map(t => {
+    const cls = t.delta > 0 ? 'plus' : (t.delta < 0 ? 'minus' : '');
+    const sign = t.delta > 0 ? '+' : '';
+    return `<tr><td>${t.n}</td><td>${TECH_NAMES[t.technique]||t.technique}</td>
+      <td class="${cls}">${sign}${t.delta}</td></tr>`;
+  }).join('');
+
+  out.innerHTML = `
+    <h2>${title}</h2>
+    <p>${text}</p>
+    ${coachNote ? `<div class="coachnote">${coachNote}</div>` : ''}
+    <table class="turntable"><thead><tr><th>ход</th><th>техника</th><th>доверие</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <button class="restart" id="restartBtn">ЕЩЁ РАЗ</button>
+  `;
+  document.getElementById('restartBtn').addEventListener('click', ()=>location.reload());
+}
+
+document.getElementById('sendBtn').addEventListener('click', handleSend);
+document.getElementById('playerInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleSend(); }
+});
+
+document.getElementById('cheatToggle').addEventListener('click', ()=>{
+  document.getElementById('cheatsheet').classList.toggle('open');
+});
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    const ta = document.getElementById('playerInput');
+    const tpl = chip.getAttribute('data-tpl');
+    const cur = ta.value;
+    ta.value = (cur ? cur.trim() + ' ' : '') + tpl;
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = ta.value.length;
+  });
+});
+
+// открывающая реплика Игоря
+addTurn('npc', 'Слушай... я, наверное, выхожу из программы. Жена прямо против — каждый раз после стычки дома разборки. Не хочу из-за этого с ней воевать ещё и дома.');
+history.push({role:'npc', text:'Слушай... я, наверное, выхожу из программы. Жена прямо против — каждый раз после стычки дома разборки. Не хочу из-за этого с ней воевать ещё и дома.'});
+renderVisor();
+</script>
+</body>
+</html>
